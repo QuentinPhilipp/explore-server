@@ -16,6 +16,7 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    environment: tests
 
     steps:
     - uses: actions/checkout@v3
@@ -29,12 +30,6 @@ jobs:
         FIREBASE_PROJECT_ID: ${{secrets.FIREBASE_PROJECT_ID}}
       run: |
         echo ${#FIREBASE_PROJECT_ID}
-    - name: Print
-      env:
-        FIREBASE_PROJECT_ID: ${{secrets.FIREBASE_PROJECT_ID}}
-        OTHER_VAR: "test"
-      run: |
-        print %ENV
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip

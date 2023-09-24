@@ -50,3 +50,9 @@ jobs:
         FIREBASE_UNIVERSE_DOMAIN: googleapis.com
       run: |
         python -m pytest
+    - name: Echo
+      working-directory: ./src
+      env:
+        FIREBASE_PROJECT_ID: ${{secrets.FIREBASE_PROJECT_ID}}
+      run: |
+        echo ${#FIREBASE_PROJECT_ID}

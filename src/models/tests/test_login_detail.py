@@ -1,6 +1,6 @@
 import unittest
 
-from src.models.LoginDetail import LoginDetail
+from models.LoginDetail import LoginDetail
 
 
 class TestLoginDetail(unittest.TestCase):

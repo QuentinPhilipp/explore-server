@@ -1,7 +1,7 @@
 import unittest
 
-from src.models.Athlete import Athlete
-from src.models.LoginDetail import LoginDetail
+from models.Athlete import Athlete
+from models.LoginDetail import LoginDetail
 
 
 class TestAthlete(unittest.TestCase):

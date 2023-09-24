@@ -1,8 +1,13 @@
+"""
+Test main.py functions
+"""
+
 import unittest
+from typing import Dict
+from unittest import mock
 
 from fastapi.testclient import TestClient
 from main import register_athlete, app
-from unittest import mock
 
 client = TestClient(app)
 
@@ -27,42 +32,63 @@ TEST_PAYLOAD = \
     }
 
 
+class MockResponse:
+    """
+    Mock response to a post request to Strava. Return bad data
+    Mock a requests.Response object
+    """
+    def __init__(self, json_data: Dict, status_code: int):
+        """
+        Mock a requests.Response object
+        """
+        self.json_data = json_data
+        self.status_code = status_code
+
+    def json(self):
+        """
+        return json data. Mock a requests.Response object
+        """
+        return self.json_data
+
+
 # This method will be used by the mock to replace requests.post
-def mocked_requests_post(*args, **kwargs):
-    class MockResponse:
-        def __init__(self, json_data, status_code):
-            self.json_data = json_data
-            self.status_code = status_code
-
-        def json(self):
-            return self.json_data
-
+def mocked_requests_post(*_, **__):
+    """
+    mock function for a post request to Strava. Return correct data
+    """
     return MockResponse(TEST_PAYLOAD, 200)
 
 
-def mocked_failed_requests_post(*args, **kwargs):
-    class MockResponse:
-        def __init__(self, json_data, status_code):
-            self.json_data = json_data
-            self.status_code = status_code
-
-        def json(self):
-            return self.json_data
-
+def mocked_failed_requests_post(*_, **__):
+    """
+    mock function for a post request to Strava. Return bad data
+    """
     return MockResponse({"wrong": "data"}, 400)
 
 
 class TestMain(unittest.TestCase):
+    """
+    test main.py functions
+    """
     def test_register_athlete(self):
+        """
+        register_athlete should return an Athlete object
+        """
         athlete = register_athlete(TEST_PAYLOAD)
         self.assertEqual(athlete.id, "6833726")
 
     def test_ping(self):
+        """
+        ping to test TestClient
+        """
         response = client.get("/ping")
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {"msg": "pong"})
 
     def test_login_strava(self):
+        """
+        login_strava should redirect to strava OAuth
+        """
         response = client.get("/login")
         redirect_url = ("https://www.strava.com/oauth/authorize?client_id=51912&response_type=code&redirect_uri=http"
                         ":%2F%2F127.0.0.1:8000%2Fexchange_token&approval_prompt=force&scope=activity:read_all")
@@ -70,12 +96,18 @@ class TestMain(unittest.TestCase):
 
     @mock.patch('requests.post', mocked_requests_post)
     def test_exchange_token(self):
+        """
+        exchange_token should return 200 if the athlete is registered
+        """
         response = client.get("/exchange_token?code=abc&scope=read,activity:read_all")
 
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {"athleteId": "6833726"})
 
     def test_exchange_token_wrong_scope(self):
+        """
+        exchange_token should return error 400 if the scope is wrong
+        """
         response = client.get("/exchange_token?code=abc&scope=abc")
 
         self.assertEqual(response.status_code, 400)
@@ -83,10 +115,13 @@ class TestMain(unittest.TestCase):
 
     @mock.patch('requests.post', mocked_failed_requests_post)
     def test_exchange_token_failed_post(self):
+        """
+        exchange_token should return error 400 if the post to Strava fail
+        """
         response = client.get("/exchange_token?code=abc&scope=read,activity:read_all")
 
         self.assertEqual(response.status_code, 400)
-        self.assertDictEqual(response.json(), {"detail": "Error registering athlete. 'athlete'"})
+        self.assertDictEqual(response.json(), {"detail": "Error while getting token"})
 
 
 if __name__ == '__main__':

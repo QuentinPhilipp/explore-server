@@ -1,6 +1,11 @@
-import firebase_admin
+"""
+Access to Firebase database
+"""
+
 import os
 from base64 import b64decode
+
+import firebase_admin
 from firebase_admin import firestore
 from firebase_admin import credentials
 from dotenv import load_dotenv

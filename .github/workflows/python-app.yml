@@ -36,5 +36,17 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       working-directory: ./src
+      env:
+        FIREBASE_TYPE: service_account
+        FIREBASE_PROJECT_ID: ${{secrets.FIREBASE_PROJECT_ID}}
+        FIREBASE_PRIVATE_KEY_ID: ${{secrets.FIREBASE_PRIVATE_KEY_ID}}
+        FIREBASE_PRIVATE_KEY: ${{secrets.FIREBASE_PRIVATE_KEY}}
+        FIREBASE_CLIENT_EMAIL: ${{secrets.FIREBASE_CLIENT_EMAIL}}
+        FIREBASE_CLIENT_ID: ${{secrets.FIREBASE_CLIENT_ID}}
+        FIREBASE_AUTH_URI: https://accounts.google.com/o/oauth2/auth
+        FIREBASE_TOKEN_URI: https://oauth2.googleapis.com/token
+        FIREBASE_AUTH_PROVIDER_X509_CERT_URL: https://www.googleapis.com/oauth2/v1/certs
+        FIREBASE_CLIENT_X509_CERT_URL: ${{secrets.FIREBASE_CLIENT_X509_CERT_URL}}
+        FIREBASE_UNIVERSE_DOMAIN: googleapis.com
       run: |
         python -m pytest

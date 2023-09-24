@@ -20,6 +20,8 @@ cred_dict = {
   "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
   "universe_domain": os.getenv("FIREBASE_UNIVERSE_DOMAIN")
 }
+
+print(cred_dict)
 cred = credentials.Certificate(cred_dict)
 default_app = firebase_admin.initialize_app(cred)
 db = firestore.client()

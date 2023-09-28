@@ -26,7 +26,6 @@ cred_dict = {
   "universe_domain": os.getenv("FIREBASE_UNIVERSE_DOMAIN")
 }
 
-print(cred_dict)
 cred = credentials.Certificate(cred_dict)
 default_app = firebase_admin.initialize_app(cred)
 db = firestore.client()

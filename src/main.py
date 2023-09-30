@@ -1,8 +1,8 @@
 """
 Main application
 """
+import datetime
 import os
-import time
 from typing import Annotated, Union
 
 import requests
@@ -11,10 +11,13 @@ from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from models import crud, models, schemas
-from database.db import SessionLocal, engine
+from schemas.webhooks import WebhookCreate
+from schemas.auth import LoginCreate, RefreshedLogin
+from schemas.misc import StravaErrors
+from database.db import SessionLocal, engine, Base
+from models import crud
 
-models.Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 
 load_dotenv()
@@ -61,24 +64,24 @@ def exchange_token(code: str, scope: str, db: Session = Depends(get_db)):
     response = requests.post(url, timeout=10)
 
     if response.status_code == 200:
-        login_create_data = schemas.LoginCreate(**response.json())
+        login_create_data = LoginCreate(**response.json())
         db_athlete = crud.get_athlete_by_id(db, login_create_data.athlete.id)
         if db_athlete is None:
             db_athlete = crud.create_athlete_login(db, login_create_data)
         else:
-            crud.update_athlete_login(db, login_create_data)
+            crud.update_athlete_login(db, login_create_data, athlete_id=db_athlete.id)
         return {"athlete": db_athlete}
 
     elif response.status_code == 400:
-        error = schemas.StravaErrors(**response.json())
+        error = StravaErrors(**response.json())
         print(error)
         raise HTTPException(status_code=400, detail=f"Error registering athlete. {error}")
     else:
-        raise HTTPException(status_code=400, detail=f"Unkown error. {response.json()}")
+        raise HTTPException(status_code=400, detail=f"Unknown error. {response.json()}")
 
 
 @app.post("/webhook", status_code=200)
-def webhook(webhook_activity: schemas.WebhookCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def webhook(webhook_activity: WebhookCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     /webhook endpoint to get Strava webhook activities
     """
@@ -98,13 +101,36 @@ def webhook_validation(verify_token: Annotated[Union[str, None], Query(alias="hu
     return {'hub.challenge': challenge}
 
 
-def register_webhook(webhook_activity: schemas.WebhookCreate, db: Session):
+def register_webhook(webhook_activity: WebhookCreate, db: Session):
     """
     async registration of the webhook in DB
     """
-    owner = crud.get_athlete_by_id(db, athlete_id=webhook_activity.owner_id)
-    if owner is not None:
+    athlete = crud.get_athlete_by_id(db, athlete_id=webhook_activity.owner_id)
+    if athlete is not None:
         db_webhook = crud.create_webhook(db, webhook_activity)
-        print(f"db webhook {db_webhook}")
+
+        # Check if user login is still valid
+        login = crud.get_athlete_login(db, athlete.id)
+        if datetime.datetime.utcfromtimestamp(login.expires_at) < datetime.datetime.utcnow():
+            # need to refresh token
+            params = {
+                'client_id': os.getenv('STRAVA_CLIENT_ID'),
+                'client_secret': os.getenv('STRAVA_CLIENT_SECRET'),
+                'grant_type': 'refresh_token',
+                'refresh_token': login.refresh_token
+            }
+            response = requests.post("https://www.strava.com/api/v3/oauth/token", params=params)
+            if response.status_code == 200:
+                print(f"Received refresh {response.json()}")
+                refreshed_login_data = RefreshedLogin(**response.json())
+                print(f"Received refresh {refreshed_login_data}")
+                crud.update_athlete_login(db, refreshed_login_data, athlete_id=athlete.id)
+
+            else:
+                print("ERROR while refreshing token")
+
+        # Fetch data
+        ...
+
     else:
         print(f"Owner not registered in users. Skip webhook {webhook_activity}")

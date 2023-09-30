@@ -36,6 +36,8 @@ jobs:
   push-docker-hub:
     executor: docker-publisher
     steps:
+      - run: |
+            apk add --no-cache bash curl
       - setup_remote_docker
       - attach_workspace:
           at: /tmp/workspace
@@ -53,6 +55,8 @@ jobs:
     docker:
       - image: cibuilds/base
     steps:
+      - run: |
+          apk add --no-cache bash curl
       - attach_workspace:
           at: src
       - add_ssh_keys

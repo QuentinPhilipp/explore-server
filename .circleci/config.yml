@@ -49,8 +49,7 @@ jobs:
       - run:
           name: Pull and run new image
           command: |
-            echo 'example.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBJiGRY6N9WYQ0vy6cTiwAgNbc6ueJmVo/EafBtmT7bcD6cQMbipYM/KfYQ2lCn2TxqWepZKYoyoVQXgArycCOns=' >> ~/.ssh/known_hosts
-            ssh $SSH_USER@$SSH_HOST <<'ENDSSH'
+            ssh $SSH_USER@$SSH_HOST
             docker pull $IMAGE_NAME
             docker stop rideout
             docker rm rideout

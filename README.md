@@ -1,3 +1,3 @@
 # explore-server
 
-test docker 4
+Auto deploy and notify with Circle CI

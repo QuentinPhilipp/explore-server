@@ -50,7 +50,7 @@ jobs:
           name: Pull and run new image
           command: |
             echo "82.165.102.144 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGZxuVBzFj/F8+h6WkVtijSkQugblIaa5bvdyN6JAa9l6AEtTP0GWA0Iq0uS0M+VNC98TJrSnkTS+GA7Vy0x/NQ=" >> ~/.ssh/known_hosts
-            ssh $SSH_USER@$SSH_HOST <<'ENDSSH'
+            ssh $SSH_USER@$SSH_HOST << ENDSSH
             docker pull $IMAGE_TAG
             docker stop rideout
             docker rm rideout

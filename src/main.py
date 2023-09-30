@@ -29,6 +29,11 @@ def get_db():
         db.close()
 
 
+@app.get("/ping")
+def ping():
+    return {"msg": "pong"}
+
+
 @app.get("/login")
 def login_strava():
     """

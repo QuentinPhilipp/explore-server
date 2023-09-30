@@ -3,7 +3,7 @@ version: 2.1
 executors:
   docker-publisher:
     environment:
-      IMAGE_TAG: nyitus/rideout:latest
+      IMAGE_TAG: $IMAGE_NAME:latest
     docker:
       - image: docker:stable
 
@@ -24,7 +24,7 @@ jobs:
           paths:
             - ./image.tar
 
-  push:
+  push-docker-hub:
     executor: docker-publisher
     steps:
       - setup_remote_docker
@@ -39,14 +39,38 @@ jobs:
             echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
             docker push "$IMAGE_TAG"
 
+  push-server:
+    docker:
+      - image: cibuilds/base
+    steps:
+      - attach_workspace:
+          at: src
+      - add_ssh_keys
+      - run:
+          name: Pull and run new image
+          command: |
+            echo 'example.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBJiGRY6N9WYQ0vy6cTiwAgNbc6ueJmVo/EafBtmT7bcD6cQMbipYM/KfYQ2lCn2TxqWepZKYoyoVQXgArycCOns=' >> ~/.ssh/known_hosts
+            ssh $SSH_USER@$SSH_HOST <<'ENDSSH'
+            docker pull $IMAGE_NAME
+            docker stop rideout
+            docker rm rideout
+            docker run --name=my-app --restart=always -p 8010:8010 -d $IMAGE_NAME
+
+
 workflows:
   version: 2
   build-push:
     jobs:
       - build
-      - push:
+      - push-docker-hub:
           requires:
             - build
+          filters:
+            branches:
+              only: main
+      - push-server:
+          requires:
+            - push-server
           filters:
             branches:
               only: main

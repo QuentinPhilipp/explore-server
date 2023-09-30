@@ -1,5 +1,6 @@
 version: 2.1
-
+orbs:
+  discord: teka23/discord@x.y.z
 executors:
   docker-publisher:
     environment:
@@ -11,6 +12,10 @@ jobs:
   build:
     executor: docker-publisher
     steps:
+      - discord/notify:
+          color: '00ff00'
+          mentions: here
+          message: ':green_circle: CI starting'
       - checkout
       - setup_remote_docker
       - run:
@@ -23,6 +28,8 @@ jobs:
           root: .
           paths:
             - ./image.tar
+      - discord/status:
+          failure_mentions: everyone
 
   push-docker-hub:
     executor: docker-publisher
@@ -38,7 +45,8 @@ jobs:
           command: |
             echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
             docker push "$IMAGE_TAG"
-
+      - discord/status:
+          failure_mentions: everyone
   push-server:
     docker:
       - image: cibuilds/base
@@ -51,6 +59,8 @@ jobs:
           command: |
             echo "82.165.102.144 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGZxuVBzFj/F8+h6WkVtijSkQugblIaa5bvdyN6JAa9l6AEtTP0GWA0Iq0uS0M+VNC98TJrSnkTS+GA7Vy0x/NQ=" >> ~/.ssh/known_hosts
             ssh $SSH_USER@$SSH_HOST "./deploy.sh"
+      - discord/status:
+          failure_mentions: everyone
 
 workflows:
   version: 2

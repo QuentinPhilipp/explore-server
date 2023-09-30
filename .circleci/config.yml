@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  discord: teka23/discord@x.y.z
+  discord: teka23/discord@0.0.1
 executors:
   docker-publisher:
     environment:

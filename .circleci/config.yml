@@ -18,15 +18,23 @@ jobs:
           name: "Say hello"
           command: "echo Hello, World!"
 
-  deploy:
+  build-docker:
+    working_directory: /app
     docker:
-      - image: cimg/base:stable
+      - image: circleci/node:latest
+    auth:
+        username: $DOCKERHUB_USERNAME
+        password: $DOCKERHUB_PASSWORD
     steps:
       - checkout
-      - run: |
-          docker build .
-          docker login -u $DOCKER_USER -p $DOCKER_PASS
-          docker push nyitus/rideout
+      - setup_remote_docker
+      - run:
+          name: Publish Docker Image to Docker Hub
+          command: |
+            echo “$DOCKERHUB_PASSWORD” | docker login -u “$DOCKERHUB_USERNAME” — password-stdin
+            docker build -t $IMAGE_NAME .
+            docker push $IMAGE_NAME:latest
+          
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows

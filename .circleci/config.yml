@@ -69,7 +69,7 @@ workflows:
               only: main
       - push-server:
           requires:
-            - push-server
+            - push-docker-hub
           filters:
             branches:
               only: main

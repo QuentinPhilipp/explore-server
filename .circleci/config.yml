@@ -12,6 +12,8 @@ jobs:
   build:
     executor: docker-publisher
     steps:
+      - run: |
+          apk add --no-cache bash
       - discord/notify:
           color: '00ff00'
           mentions: here

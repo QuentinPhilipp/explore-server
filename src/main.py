@@ -2,10 +2,12 @@
 Main application
 """
 import os
+import time
+from typing import Annotated, Union
 
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -75,14 +77,34 @@ def exchange_token(code: str, scope: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"Unkown error. {response.json()}")
 
 
-@app.post("/webhook")
-def webhook(webhook_activity: schemas.WebhookCreate, db: Session = Depends(get_db)):
+@app.post("/webhook", status_code=200)
+def webhook(webhook_activity: schemas.WebhookCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     /webhook endpoint to get Strava webhook activities
+    """
+    background_tasks.add_task(register_webhook, webhook_activity, db)
+
+
+@app.get("/webhook")
+def webhook_validation(verify_token: Annotated[Union[str, None], Query(alias="hub.verify_token")] = None,
+                       challenge: Annotated[Union[str, None], Query(alias="hub.challenge")] = None,
+                       mode: Annotated[Union[str, None], Query(alias="hub.mode")] = None,
+                       ):
+    """
+    Strava needs to validate the endpoint for the webhook. This allows their server to validate the endpoint.
+    """
+    if verify_token != "StravaWebhookRideout" or mode != "subscribe":
+        raise HTTPException(status_code=400, detail="Wrong token or mode, webhook not registered")
+    return {'hub.challenge': challenge}
+
+
+def register_webhook(webhook_activity: schemas.WebhookCreate, db: Session):
+    """
+    async registration of the webhook in DB
     """
     owner = crud.get_athlete_by_id(db, athlete_id=webhook_activity.owner_id)
     if owner is not None:
         db_webhook = crud.create_webhook(db, webhook_activity)
-        return {"webhook": db_webhook}
+        print(f"db webhook {db_webhook}")
     else:
         print(f"Owner not registered in users. Skip webhook {webhook_activity}")

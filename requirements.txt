@@ -25,10 +25,10 @@ googleapis-common-protos==1.60.0
 grpcio==1.58.0
 grpcio-status==1.58.0
 h11==0.14.0
-httpcore==0.18.0
+httpcore==0.17.3
 httplib2==0.22.0
 httptools==0.6.0
-httpx==0.25.0
+httpx==0.24.1
 idna==3.4
 itsdangerous==2.1.2
 Jinja2==3.1.2
@@ -60,4 +60,7 @@ urllib3==1.26.16
 uvicorn==0.23.2
 uvloop==0.17.0
 watchfiles==0.20.0
-websockets==11.0.3
+websockets==10.4
+supabase==1.0.4
+SQLAlchemy==2.0.21
+psycopg2==2.9.8

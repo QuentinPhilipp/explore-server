@@ -1,3 +1,3 @@
 # explore-server
 
-test docker 2
+test docker 3

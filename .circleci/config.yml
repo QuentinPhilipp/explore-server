@@ -3,7 +3,7 @@ version: 2.1
 executors:
   docker-publisher:
     environment:
-      IMAGE_TAG: $IMAGE_NAME:latest
+      IMAGE_TAG: nyitus/rideout:latest
     docker:
       - image: docker:stable
 
@@ -50,10 +50,10 @@ jobs:
           name: Pull and run new image
           command: |
             ssh $SSH_USER@$SSH_HOST
-            docker pull $IMAGE_NAME
+            docker pull $IMAGE_TAG
             docker stop rideout
             docker rm rideout
-            docker run --name=my-app --restart=always -p 8010:8010 -d $IMAGE_NAME
+            docker run --name=my-app --restart=always -p 8010:8010 -d $IMAGE_TAG
 
 
 workflows:

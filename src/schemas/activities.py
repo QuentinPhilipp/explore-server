@@ -17,8 +17,8 @@ class ActivityBase(BaseModel):
     moving_time: int
     elapsed_time: int
     total_elevation_gain: float
-    elev_high: float
-    elev_low: float
+    elev_high: Optional[float] = 0
+    elev_low: Optional[float] = 0
     sport_type: str
     start_date: datetime
     start_date_local: datetime
@@ -32,7 +32,7 @@ class ActivityBase(BaseModel):
     private: bool
     visibility: str
     flagged: bool
-    workout_type: int
+    workout_type: Optional[int]
     average_speed: float
     max_speed: float
     hide_from_home: bool

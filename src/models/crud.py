@@ -50,6 +50,11 @@ def create_webhook(db: Session, webhook: WebhookCreate) -> Optional[WebhookActiv
     return webhook
 
 
+def delete_webhook_by_id(db: Session, webhook_id: int):
+    db.query(WebhookActivitiesModel).filter(WebhookActivitiesModel.id == webhook_id).delete()
+    db.commit()
+
+
 def get_activity_by_id(db: Session, activity_id: int):
     return db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
 
@@ -60,10 +65,10 @@ def create_activity(db: Session, activity: Union[SummaryActivity, DetailedActivi
         **activity.model_dump(exclude=activity.db_exclude_list()),
         athlete_id=activity.athlete_id,
         polyline=activity.polyline,
-        start_lat=activity.start_latlng[0],
-        start_lng=activity.start_latlng[1],
-        end_lat=activity.end_latlng[0],
-        end_lng=activity.end_latlng[1],
+        start_lat=activity.start_latlng[0] if len(activity.start_latlng) else None,
+        start_lng=activity.start_latlng[1] if len(activity.start_latlng) else None,
+        end_lat=activity.end_latlng[0] if len(activity.end_latlng) else None,
+        end_lng=activity.end_latlng[1] if len(activity.end_latlng) else None,
         gear_id=activity.gear_id
     )
     db.add(activity)
@@ -77,10 +82,10 @@ def update_activity(db: Session, activity: Union[SummaryActivity, DetailedActivi
     new_activity_dict.update({
         'athlete_id': activity.athlete_id,
         'polyline': activity.polyline,
-        'start_lat': activity.start_latlng[0],
-        'start_lng': activity.start_latlng[1],
-        'end_lat': activity.end_latlng[0],
-        'end_lng': activity.end_latlng[1],
+        'start_lat': activity.start_latlng[0] if len(activity.start_latlng) else None,
+        'start_lng': activity.start_latlng[1] if len(activity.start_latlng) else None,
+        'end_lat': activity.end_latlng[0] if len(activity.end_latlng) else None,
+        'end_lng': activity.end_latlng[1] if len(activity.end_latlng) else None,
         'gear_id': activity.gear_id
     })
     db.query(ActivityModel).filter(ActivityModel.id == activity.id).update(new_activity_dict)

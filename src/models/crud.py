@@ -1,10 +1,12 @@
-from typing import Optional
+from typing import Optional, Union
 
 from sqlalchemy.orm import Session
 
+from models.activities import ActivityModel
 from models.auth import LoginDetailsModel
 from models.athletes import AthleteModel
 from models.webhooks import WebhookActivitiesModel
+from schemas.activities import DetailedActivity, SummaryActivity
 from schemas.auth import LoginCreate, LoginBase
 from schemas.webhooks import WebhookCreate
 
@@ -46,3 +48,41 @@ def create_webhook(db: Session, webhook: WebhookCreate) -> Optional[WebhookActiv
     db.commit()
     db.refresh(webhook)
     return webhook
+
+
+def get_activity_by_id(db: Session, activity_id: int):
+    return db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
+
+
+def create_activity(db: Session, activity: Union[SummaryActivity, DetailedActivity]) -> Optional[ActivityModel]:
+
+    activity = ActivityModel(
+        **activity.model_dump(exclude=activity.db_exclude_list()),
+        athlete_id=activity.athlete_id,
+        polyline=activity.polyline,
+        start_lat=activity.start_latlng[0],
+        start_lng=activity.start_latlng[1],
+        end_lat=activity.end_latlng[0],
+        end_lng=activity.end_latlng[1],
+        gear_id=activity.gear_id
+    )
+    db.add(activity)
+    db.commit()
+    db.refresh(activity)
+    return activity
+
+
+def update_activity(db: Session, activity: Union[SummaryActivity, DetailedActivity]) -> Optional[ActivityModel]:
+    new_activity_dict = activity.model_dump(exclude=activity.db_exclude_list())
+    new_activity_dict.update({
+        'athlete_id': activity.athlete_id,
+        'polyline': activity.polyline,
+        'start_lat': activity.start_latlng[0],
+        'start_lng': activity.start_latlng[1],
+        'end_lat': activity.end_latlng[0],
+        'end_lng': activity.end_latlng[1],
+        'gear_id': activity.gear_id
+    })
+    db.query(ActivityModel).filter(ActivityModel.id == activity.id).update(new_activity_dict)
+    db.commit()
+    return get_activity_by_id(db=db, activity_id=activity.id)

@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-import datetime
+from datetime import datetime
 
 from pydantic import BaseModel
 
 
-class Athlete(BaseModel):
+class MetaAthleteStrava(BaseModel):
+    id: int
+
+
+class Athlete(MetaAthleteStrava):
     id: int
     username: str
     firstname: str
@@ -15,8 +19,8 @@ class Athlete(BaseModel):
     state: str
     country: str
     sex: str
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
+    created_at: datetime
+    updated_at: datetime
     profile_medium: str
     weight: float
 

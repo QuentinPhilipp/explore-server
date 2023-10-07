@@ -11,11 +11,13 @@ from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from models.athletes import AthleteModel
 from schemas.webhooks import WebhookCreate
 from schemas.auth import LoginCreate, RefreshedLogin
 from schemas.misc import StravaErrors
 from database.db import SessionLocal, engine, Base
 from models import crud
+from strava.api import StravaApi
 
 Base.metadata.create_all(bind=engine)
 
@@ -101,36 +103,36 @@ def webhook_validation(verify_token: Annotated[Union[str, None], Query(alias="hu
     return {'hub.challenge': challenge}
 
 
+def get_token(db: Session, athlete: AthleteModel) -> str:
+    login = crud.get_athlete_login(db, athlete.id)
+
+    if datetime.datetime.utcfromtimestamp(login.expires_at) < datetime.datetime.utcnow():
+        # need to refresh token
+        params = {
+            'client_id': os.getenv('STRAVA_CLIENT_ID'),
+            'client_secret': os.getenv('STRAVA_CLIENT_SECRET'),
+            'grant_type': 'refresh_token',
+            'refresh_token': login.refresh_token
+        }
+        response = requests.post("https://www.strava.com/api/v3/oauth/token", params=params)
+        if response.status_code == 200:
+            refreshed_login_data = RefreshedLogin(**response.json())
+            crud.update_athlete_login(db, refreshed_login_data, athlete_id=athlete.id)
+            return refreshed_login_data.access_token
+        else:
+            print("ERROR while refreshing token")
+    else:
+        return login.access_token
+
+
 def register_webhook(webhook_activity: WebhookCreate, db: Session):
     """
     async registration of the webhook in DB
     """
+    strava_api = StravaApi(db=db, athlete_id=webhook_activity.owner_id)
     athlete = crud.get_athlete_by_id(db, athlete_id=webhook_activity.owner_id)
     if athlete is not None:
-        db_webhook = crud.create_webhook(db, webhook_activity)
-
-        # Check if user login is still valid
-        login = crud.get_athlete_login(db, athlete.id)
-        if datetime.datetime.utcfromtimestamp(login.expires_at) < datetime.datetime.utcnow():
-            # need to refresh token
-            params = {
-                'client_id': os.getenv('STRAVA_CLIENT_ID'),
-                'client_secret': os.getenv('STRAVA_CLIENT_SECRET'),
-                'grant_type': 'refresh_token',
-                'refresh_token': login.refresh_token
-            }
-            response = requests.post("https://www.strava.com/api/v3/oauth/token", params=params)
-            if response.status_code == 200:
-                print(f"Received refresh {response.json()}")
-                refreshed_login_data = RefreshedLogin(**response.json())
-                print(f"Received refresh {refreshed_login_data}")
-                crud.update_athlete_login(db, refreshed_login_data, athlete_id=athlete.id)
-
-            else:
-                print("ERROR while refreshing token")
-
-        # Fetch data
-        ...
-
+        webhook_db = crud.create_webhook(db, webhook_activity)
+        strava_api.get_activity_from_id(webhook_db.object_id)
     else:
         print(f"Owner not registered in users. Skip webhook {webhook_activity}")

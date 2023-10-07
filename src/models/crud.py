@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any
 
 from sqlalchemy.orm import Session
 
@@ -86,3 +86,27 @@ def update_activity(db: Session, activity: Union[SummaryActivity, DetailedActivi
     db.query(ActivityModel).filter(ActivityModel.id == activity.id).update(new_activity_dict)
     db.commit()
     return get_activity_by_id(db=db, activity_id=activity.id)
+
+
+def update_activity_by_id(db: Session,  activity_id: int, changes: Dict[str, Any]) -> Optional[ActivityModel]:
+    activity = db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
+
+    for key, value in changes.items():
+        # For whatever reason, Strava webhooks use "title" and the rest of the api use "name" for the activity title
+        # and string for boolean values
+        if key == "title":
+            key = "name"
+
+        if value == "false":
+            value = False
+        elif value == "true":
+            value = True
+
+        setattr(activity, key, value)
+    db.commit()
+    return get_activity_by_id(db=db, activity_id=activity.id)
+
+
+def delete_activity_by_id(db: Session, activity_id: int):
+    db.query(ActivityModel).filter(ActivityModel.id == activity_id).delete()
+    db.commit()

@@ -30,6 +30,7 @@ class ActivityBase(BaseModel):
     commute: bool
     manual: bool
     private: bool
+    visibility: str
     flagged: bool
     workout_type: int
     average_speed: float

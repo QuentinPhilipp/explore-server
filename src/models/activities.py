@@ -30,6 +30,7 @@ class ActivityModel(Base):
     commute = Column(Boolean)
     manual = Column(Boolean)
     private = Column(Boolean)
+    visibility = Column(String)
     flagged = Column(Boolean)
     workout_type = Column(Integer)
     average_speed = Column(Float)

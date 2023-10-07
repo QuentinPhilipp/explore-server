@@ -107,8 +107,20 @@ def register_webhook(webhook_activity: WebhookCreate, db: Session):
     """
     strava_api = StravaApi(db=db, athlete_id=webhook_activity.owner_id)
     athlete = crud.get_athlete_by_id(db, athlete_id=webhook_activity.owner_id)
-    if athlete is not None:
+    if athlete is not None and webhook_activity.object_type == "activity":
         webhook_db = crud.create_webhook(db, webhook_activity)
-        strava_api.get_activity_from_id(webhook_db.object_id)
+        if webhook_activity.aspect_type == "create":
+            strava_api.get_activity_from_id(webhook_db.object_id)
+        elif webhook_activity.aspect_type == "update":
+            crud.update_activity_by_id(
+                db=db,
+                activity_id=webhook_activity.object_id,
+                changes=webhook_activity.updates
+            )
+        elif webhook_activity.aspect_type == "delete":
+            crud.delete_activity_by_id(
+                db=db,
+                activity_id=webhook_activity.object_id
+            )
     else:
         print(f"Owner not registered in users. Skip webhook {webhook_activity}")

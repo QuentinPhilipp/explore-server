@@ -6,10 +6,12 @@ from typing import Annotated, Union
 
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks, Request
 from sqlalchemy.orm import Session
+from starlette.middleware.sessions import SessionMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 
+from schemas.strava_models.auth_code import AuthCode
 from schemas.webhooks import WebhookCreate
 from schemas.auth import LoginCreate
 from schemas.misc import StravaErrors
@@ -22,7 +24,27 @@ Base.metadata.create_all(bind=engine)
 
 load_dotenv()
 
+origins = [
+    "http://localhost",
+    "http://localhost:5173",
+    "http://127.0.0.1",
+    "http://127.0.0.1:5173",
+]
+
 app = FastAPI()
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv('SESSION_KEY'),
+    max_age=3600,
+    https_only=False,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Dependency
@@ -34,32 +56,28 @@ def get_db():
         db.close()
 
 
+async def check_user_session(request: Request):
+    athlete_id = request.session.get('athlete_id')
+    if athlete_id is None:
+        raise HTTPException(status_code=401, detail="User not logged in")
+    return athlete_id
+
+
 @app.get("/ping")
 def ping():
     return {"msg": "pong"}
 
 
-@app.get("/login")
-def login_strava():
-    """
-    /login endpoint to get Strava OAuth url
-    """
-    login_url = (f"https://www.strava.com/oauth/authorize?client_id={os.getenv('STRAVA_CLIENT_ID')}&response_type=code"
-                 f"&redirect_uri={os.getenv('STRAVA_AUTH_URL')}&approval_prompt=force"
-                 f"&scope={os.getenv('STRAVA_AUTH_SCOPE')}")
-    return RedirectResponse(login_url)
-
-
-@app.get("/exchange_token")
-def exchange_token(code: str, scope: str, db: Session = Depends(get_db)):
+@app.post("/exchange_token")
+def exchange_token(request: Request, auth_code: AuthCode, db: Session = Depends(get_db)):
     """
     /exchange_token endpoint to get Strava short-lived access token
     """
-    if scope != "read,activity:read_all":
+    if auth_code.scope != "read,activity:read_all":
         raise HTTPException(status_code=400, detail="Select authorization read and activity:read_all")
 
     url = (f"https://www.strava.com/api/v3/oauth/token?client_id={os.getenv('STRAVA_CLIENT_ID')}&"
-           f"client_secret={os.getenv('STRAVA_CLIENT_SECRET')}&code={code}&grant_type=authorization_code")
+           f"client_secret={os.getenv('STRAVA_CLIENT_SECRET')}&code={auth_code.code}&grant_type=authorization_code")
 
     response = requests.post(url, timeout=10)
 
@@ -70,7 +88,9 @@ def exchange_token(code: str, scope: str, db: Session = Depends(get_db)):
             db_athlete = crud.create_athlete_login(db, login_create_data)
         else:
             crud.update_athlete_login(db, login_create_data, athlete_id=db_athlete.id)
-        return {"athlete": db_athlete}
+
+        request.session['athlete_id'] = db_athlete.id
+        return "OK"
 
     elif response.status_code == 400:
         error = StravaErrors(**response.json())
@@ -126,6 +146,16 @@ def register_webhook(webhook_activity: WebhookCreate, db: Session):
         crud.delete_webhook_by_id(db, webhook_db.id)
     else:
         print(f"Owner not registered in users. Skip webhook {webhook_activity}")
+
+
+@app.get("/activity/{activity_id}")
+def get_activity(activity_id: int,
+                 db: Session = Depends(get_db),
+                 athlete_id=Depends(check_user_session)):
+    activity = crud.get_activity_by_id(db=db, activity_id=activity_id)
+    if activity.athlete_id != athlete_id:
+        raise HTTPException(status_code=403, detail="You cannot access another user's activity")
+    return activity
 
 
 @app.post("/backpopulate", status_code=200)

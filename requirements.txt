@@ -64,3 +64,4 @@ websockets==10.4
 supabase==1.0.4
 SQLAlchemy==2.0.21
 psycopg2==2.9.8
+fastapi-sessions==0.3.2

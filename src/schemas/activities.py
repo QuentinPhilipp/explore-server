@@ -6,7 +6,7 @@ from typing import List, Set, Optional
 from pydantic import BaseModel
 
 from schemas.athletes import MetaAthleteStrava
-from schemas.strava_models import ActivityMap, SummaryGear
+from schemas.strava_models import SummaryGear, DetailedActivityMap, SummaryActivityMap
 
 
 class ActivityBase(BaseModel):
@@ -25,17 +25,16 @@ class ActivityBase(BaseModel):
     timezone: str
     start_latlng: List
     end_latlng: List
-    map: ActivityMap
     trainer: bool
     commute: bool
     manual: bool
     private: bool
     visibility: str
     flagged: bool
-    workout_type: Optional[int]
+    workout_type: Optional[int] = None
     average_speed: float
     max_speed: float
-    hide_from_home: bool
+    hide_from_home: Optional[bool] = False
     average_watts: Optional[float] = 0
     device_watts: Optional[bool] = False
     max_watts: Optional[int] = 0
@@ -56,10 +55,12 @@ class ActivityBase(BaseModel):
 
 class SummaryActivity(ActivityBase):
     gear_id: Optional[str] = ""
+    map: SummaryActivityMap
 
 
 class DetailedActivity(ActivityBase):
     gear: Optional[SummaryGear] = None
+    map: DetailedActivityMap
 
     @property
     def gear_id(self) -> str:

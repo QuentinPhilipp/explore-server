@@ -126,3 +126,15 @@ def register_webhook(webhook_activity: WebhookCreate, db: Session):
         crud.delete_webhook_by_id(db, webhook_db.id)
     else:
         print(f"Owner not registered in users. Skip webhook {webhook_activity}")
+
+
+@app.post("/backpopulate", status_code=200)
+def back_populate_post(athlete_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    background_tasks.add_task(back_populate, db, athlete_id)
+
+
+def back_populate(db: Session, athlete_id: int):
+    api = StravaApi(db=db, athlete_id=athlete_id)
+    activities = api.list_activity_for_athlete_id()
+    crud.create_activity_batch(db=db, activities=activities)
+    return activities

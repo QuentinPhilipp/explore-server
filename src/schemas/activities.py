@@ -54,15 +54,17 @@ class ActivityBase(BaseModel):
 
 
 class SummaryActivity(ActivityBase):
-    gear_id: str
+    gear_id: Optional[str] = ""
 
 
 class DetailedActivity(ActivityBase):
-    gear: SummaryGear
+    gear: Optional[SummaryGear] = None
 
     @property
     def gear_id(self) -> str:
-        return self.gear.id
+        if self.gear is not None:
+            return self.gear.id
+        return ""
 
     class Config:
         from_attributes = True

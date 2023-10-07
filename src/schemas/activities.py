@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Set
+from typing import List, Set, Optional
 
 from pydantic import BaseModel
 
@@ -11,7 +11,6 @@ from schemas.strava_models import ActivityMap, SummaryGear
 
 class ActivityBase(BaseModel):
     id: int
-    external_id: str
     athlete: MetaAthleteStrava
     name: str
     distance: float
@@ -36,10 +35,10 @@ class ActivityBase(BaseModel):
     average_speed: float
     max_speed: float
     hide_from_home: bool
-    average_watts: float
-    device_watts: bool
-    max_watts: int
-    weighted_average_watts: int
+    average_watts: Optional[float] = 0
+    device_watts: Optional[bool] = False
+    max_watts: Optional[int] = 0
+    weighted_average_watts: Optional[int] = 0
 
     @property
     def polyline(self) -> str:

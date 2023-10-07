@@ -8,7 +8,6 @@ class ActivityModel(Base):
     __tablename__ = "activities"
 
     id = Column(BigInteger, primary_key=True, index=True)
-    external_id = Column(String)
     athlete_id = Column(BigInteger, ForeignKey('athletes.id'))
     athlete = relationship("AthleteModel")
     name = Column(String)

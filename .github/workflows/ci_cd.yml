@@ -11,9 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag nyitus/rideout:$(date +%s)
+    - name: Checkout
+      uses: actions/checkout@v4
 
     - name: Login Docker Hub
       uses: docker/login-action@v3
@@ -31,3 +30,13 @@ jobs:
         file: ./Dockerfile
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/rideout:latest
+
+    - name: Deploy using ssh
+      uses: appleboy/ssh-action@v0.1.4
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        port: 22
+        script: |
+          ./deploy.sh

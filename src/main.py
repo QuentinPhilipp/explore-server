@@ -30,6 +30,7 @@ origins = [
     "http://127.0.0.1",
     "http://127.0.0.1:5173",
     "http://rideout.earth"
+    "http://www.rideout.earth"
 ]
 
 app = FastAPI()

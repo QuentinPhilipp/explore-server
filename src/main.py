@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 
+from services.itinerary import get_routes_by_date
 from schemas.strava_models.auth_code import AuthCode
 from schemas.webhooks import WebhookCreate
 from schemas.auth import LoginCreate
@@ -71,7 +72,7 @@ def ping():
 
 
 @app.post("/exchange_token")
-def exchange_token(request: Request, auth_code: AuthCode, db: Session = Depends(get_db)):
+def exchange_token(request: Request, auth_code: AuthCode, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     /exchange_token endpoint to get Strava short-lived access token
     """
@@ -88,11 +89,12 @@ def exchange_token(request: Request, auth_code: AuthCode, db: Session = Depends(
         db_athlete = crud.get_athlete_by_id(db, login_create_data.athlete.id)
         if db_athlete is None:
             db_athlete = crud.create_athlete_login(db, login_create_data)
+            background_tasks.add_task(back_populate, db, db_athlete.id)
         else:
             crud.update_athlete_login(db, login_create_data, athlete_id=db_athlete.id)
 
         request.session['athlete_id'] = db_athlete.id
-        return "OK"
+        return db_athlete.id
 
     elif response.status_code == 400:
         error = StravaErrors(**response.json())
@@ -158,6 +160,23 @@ def get_activity(activity_id: int,
     if activity.athlete_id != athlete_id:
         raise HTTPException(status_code=403, detail="You cannot access another user's activity")
     return activity
+
+
+@app.get("/route/{activity_id}")
+def get_activity(activity_id: int,
+                 db: Session = Depends(get_db),
+                 athlete_id=Depends(check_user_session)):
+    activity = crud.get_activity_by_id(db=db, activity_id=activity_id)
+    if activity.athlete_id != athlete_id:
+        raise HTTPException(status_code=403, detail="You cannot access another user's activity")
+    return activity.polyline
+
+
+@app.get("/routes/")
+def get_activity(db: Session = Depends(get_db),
+                 athlete_id=Depends(check_user_session)):
+    activities = get_routes_by_date(athlete_id=athlete_id, db=db)
+    return activities[-10:]
 
 
 @app.post("/backpopulate", status_code=200)

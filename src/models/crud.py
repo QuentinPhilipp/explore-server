@@ -1,6 +1,7 @@
 from typing import Optional, Union, Dict, Any, List
 
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from models.activities import ActivityModel
 from models.auth import LoginDetailsModel
@@ -57,6 +58,13 @@ def delete_webhook_by_id(db: Session, webhook_id: int):
 
 def get_activity_by_id(db: Session, activity_id: int):
     return db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
+
+
+def get_routes_by_athlete_id(db: Session, athlete_id: int):
+    return (db.query(ActivityModel)
+            .filter(ActivityModel.athlete_id == athlete_id)
+            .order_by(ActivityModel.start_date_local)
+            .all())
 
 
 def _create_activity_model_from_schema(activity: Union[SummaryActivity, DetailedActivity]):
